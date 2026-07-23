@@ -239,7 +239,7 @@
   }
   .rank.gold{background:#fff2cf;color:#a3690b;}
   .c-name{flex:1;min-width:0;}
-  .c-name .t{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px;}
+  .c-name .t{font-size:12.5px;font-weight:700;white-space:normal;line-height:1.4;}
   .c-name .m{font-size:11px;color:var(--muted);}
   .c-stats{text-align:right;flex:0 0 auto;}
   .c-stats .e{font-size:12.5px;font-weight:800;}
@@ -384,16 +384,10 @@
 <div id="connectScreen">
   <div class="connect-card">
     <div class="connect-badge">G</div>
-    <h1>เชื่อมต่อ Google Sheet</h1>
-    <p class="sub">วาง Web App URL ที่ได้จากการ Deploy Apps Script (ดูขั้นตอนในไฟล์ "วิธีติดตั้ง.md") เพื่อดึงข้อมูลทีมกราฟิกแบบเรียลไทม์</p>
-    <label class="field-label">Apps Script Web App URL</label>
-    <input id="urlInput" class="url-input" placeholder="https://script.google.com/macros/s/XXXXXXXX/exec" />
+    <h1>Graphic Team Dashboard</h1>
+    <p class="sub">กดปุ่มด้านล่างเพื่อเชื่อมต่อและดึงข้อมูลทีมกราฟิกแบบเรียลไทม์</p>
     <div id="connectError" class="connect-error"></div>
-    <button id="connectBtn" class="connect-btn" onclick="handleConnect()">เชื่อมต่อและโหลดข้อมูล</button>
-    <div class="connect-note">
-      URL นี้จะถูกจำไว้สำหรับครั้งถัดไป (เก็บเฉพาะในเบราว์เซอร์ของคุณ)<br>
-      ยังไม่มี URL? เปิดไฟล์ "วิธีติดตั้ง.md" ที่แนบมา เพื่อตั้งค่า Apps Script ก่อน
-    </div>
+    <button id="connectBtn" class="connect-btn" onclick="handleConnect()">เชื่อมต่อข้อมูล</button>
   </div>
 </div>
 
@@ -413,7 +407,6 @@
       <div class="sidebar-foot">
         <div class="sync-pill"><span class="dot"></span><span id="syncLabel">เชื่อมต่อแล้ว</span></div>
         <button class="side-btn" onclick="refreshData()">รีเฟรชข้อมูล</button>
-        <button class="side-btn" onclick="disconnect()">เปลี่ยน URL</button>
       </div>
     </div>
 
@@ -466,11 +459,11 @@
             <div class="panel-head">
               <div class="panel-title">Content Type Distribution <span>ตาม Type Of Work</span></div>
             </div>
-            <div class="chart-wrap short"><canvas id="chartTypeDist"></canvas></div>
-            <div id="typeDistTbl" style="margin-top:12px;"></div>
+            <div id="typeDistList" class="hp-list"></div>
+            <div id="typeDistTotal"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><div class="panel-title">Top Selling Content <span>เรียงตาม Purchase</span></div></div>
+            <div class="panel-head"><div class="panel-title">Top Selling Content <span>เรียงตาม ยอดขาย</span></div></div>
             <div id="topSelling" class="content-list"></div>
           </div>
         </div>
@@ -626,47 +619,40 @@ async function saveTierThresholds(){
 }
 
 /* ===================== STORAGE / CONNECT ===================== */
-async function tryAutoConnect(){
-  try{
-    const res = await window.storage.get('apps_script_url');
-    if(res && res.value){
-      document.getElementById('urlInput').value = res.value;
-      webAppUrl = res.value;
-      await loadData(webAppUrl, true);
-    }
-  }catch(err){ /* no saved url yet - show connect screen */ }
-}
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzE_vTyeqmW2nkzFPIm4x_v8ZBWEVdT8O-1V4tSNUBULZdJl1Cd05vS-Et12sIT8GZU/exec';
 
-async function handleConnect(){
-  const val = document.getElementById('urlInput').value.trim();
-  const errBox = document.getElementById('connectError');
-  errBox.style.display = 'none';
-  if(!val || !val.includes('script.google.com')){
-    errBox.textContent = 'กรุณาวาง Web App URL ที่ถูกต้อง (ต้องขึ้นต้นด้วย https://script.google.com/...)';
-    errBox.style.display = 'block';
-    return;
-  }
+async function tryAutoConnect(){
   const btn = document.getElementById('connectBtn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> กำลังเชื่อมต่อ...';
   try{
-    await loadData(val, false);
-    webAppUrl = val;
-    try{ await window.storage.set('apps_script_url', val); }catch(e){}
+    webAppUrl = APPS_SCRIPT_URL;
+    await loadData(webAppUrl, true);
   }catch(err){
-    errBox.textContent = 'เชื่อมต่อไม่สำเร็จ: ' + err.message + ' — ตรวจสอบว่า Deploy แบบ "Anyone" แล้ว และ URL ถูกต้อง';
+    const errBox = document.getElementById('connectError');
+    errBox.textContent = 'เชื่อมต่อไม่สำเร็จ: ' + err.message;
     errBox.style.display = 'block';
+  }finally{
     btn.disabled = false;
-    btn.innerHTML = 'เชื่อมต่อและโหลดข้อมูล';
+    btn.innerHTML = 'เชื่อมต่อข้อมูล';
   }
 }
 
-function disconnect(){
-  try{ window.storage.delete('apps_script_url').catch(()=>{}); }catch(e){}
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('connectScreen').style.display = 'flex';
-  document.getElementById('connectBtn').disabled = false;
-  document.getElementById('connectBtn').innerHTML = 'เชื่อมต่อและโหลดข้อมูล';
+async function handleConnect(){
+  const errBox = document.getElementById('connectError');
+  errBox.style.display = 'none';
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> กำลังเชื่อมต่อ...';
+  try{
+    webAppUrl = APPS_SCRIPT_URL;
+    await loadData(webAppUrl, false);
+  }catch(err){
+    errBox.textContent = 'เชื่อมต่อไม่สำเร็จ: ' + err.message + ' — ตรวจสอบว่า Deploy แบบ "Anyone" แล้ว';
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = 'เชื่อมต่อข้อมูล';
+  }
 }
 
 async function refreshData(){
@@ -785,8 +771,8 @@ function calcKPIs(from, to, team, channel){
   const topRoasRow = roasRows.length ? roasRows.reduce((a,b)=> b.roas>a.roas?b:a) : null;
   const topMediaView = topMediaViewRow ? topMediaViewRow.mediaView : 0;
   const topRoas = topRoasRow ? topRoasRow.roas : 0;
-  const topMediaViewName = topMediaViewRow ? (topMediaViewRow.contentName||'').replace(/^\[.*?\]\s*/,'') : null;
-  const topRoasName = topRoasRow ? (topRoasRow.contentName||'').replace(/^\[.*?\]\s*/,'') : null;
+  const topMediaViewName = topMediaViewRow ? (topMediaViewRow.contentName||'') : null;
+  const topRoasName = topRoasRow ? (topRoasRow.contentName||'') : null;
 
   return {totalContent, totalHours, totalJobs, avgMediaView, avgRoas, topMediaView, topRoas, topMediaViewName, topRoasName, totalPurchase, totalSpend, totalRevenue, rows:c, hourRows:a, hourRowsByTeam:completeByTeam};
 }
@@ -910,7 +896,7 @@ function kpiCard(icon,bg,ink,label,value,deltaHtmlStr,sub){
     </div>
     <div class="kpi-value">${value}</div>
     ${sub ? `<div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${sub}</div>` : ''}
-    ${deltaHtmlStr}
+    ${deltaHtmlStr ? deltaHtmlStr : ''}
   </div>`;
 }
 
@@ -948,6 +934,17 @@ function toggleHoursExpanded(){
   renderHoursList(lastHourRows);
 }
 
+function thaiInitial(name){
+  const n = (name||'').trim();
+  if(!n) return '?';
+  const LEADING_VOWELS = ['เ','แ','โ','ใ','ไ'];
+  // Thai leading vowels are written before the consonant they belong to
+  // (e.g. "แก้ว" is consonant ก with vowel แ in front) — skip past them
+  // so the avatar shows the actual consonant, not the vowel.
+  if(LEADING_VOWELS.includes(n.charAt(0)) && n.length > 1) return n.charAt(1);
+  return n.charAt(0);
+}
+
 function renderHoursList(hourRows){
   lastHourRows = hourRows;
   const people = {};
@@ -979,7 +976,7 @@ function renderHoursList(hourRows){
   box.innerHTML = shown.map(([name,hrs],i)=>{
     const color = HP_COLORS[i % HP_COLORS.length];
     const w = Math.max(4, (hrs/max)*100);
-    const initial = name.trim().charAt(0) || '?';
+    const initial = thaiInitial(name);
     const pct = (hrs/grandTotal*100).toFixed(2);
     return `<div class="hp-row">
       <div class="hp-avatar" style="background:${color};">${initial}</div>
@@ -1070,7 +1067,7 @@ function getPostLink(r){
   return r.postLink || r.post_link || r.postUrl || r.postURL || r.link || r.postlink || r['Post Link'] || '';
 }
 function linkWrap(r){
-  const name = (r.contentName||'-').replace(/^\[.*?\]\s*/,'');
+  const name = r.contentName || '-';
   const url = getPostLink(r);
   if(url) return `<a href="${url}" target="_blank" rel="noopener" class="c-link">${name}<span class="link-ic">&#128279;</span></a>`;
   return name;
@@ -1079,13 +1076,13 @@ function linkWrap(r){
 /* ===================== MEDIA VIEW SUMMARY ===================== */
 function renderMediaSummary(rows){
   const totalMV = rows.reduce((s,r)=>s+(r.mediaView||0),0);
-  const totalPurchase = rows.reduce((s,r)=>s+(r.purchase||0),0);
+  const totalRevenue = rows.reduce((s,r)=>s+(r.revenue||0),0);
   const highCount = rows.filter(r=>(r.mediaView||0)>=tierThresholds.t1).length;
   const pct = rows.length ? (highCount/rows.length*100) : 0;
   const box = document.getElementById('mvSummary');
   box.innerHTML = `
     ${kpiCard('&#128064;','var(--rose-soft)','var(--rose)','Total Media View', fmtCompact(totalMV))}
-    ${kpiCard('&#128179;','var(--amber-soft)','var(--amber)','Total Purchase', fmtNum(totalPurchase))}
+    ${kpiCard('&#128179;','var(--amber-soft)','var(--amber)','ยอดขาย', '฿'+fmtNum(totalRevenue))}
     ${kpiCard('&#127942;','var(--teal-soft)','var(--teal)', fmtCompact(tierThresholds.t1)+'++ Content', fmtNum(highCount), '', pct.toFixed(0)+'% ของทั้งหมด')}
   `;
 }
@@ -1123,6 +1120,10 @@ function renderTierList(rows){
 /* ===================== CONTENT TYPE DISTRIBUTION ===================== */
 // Sourced from Graphic Assignment 2026 / 2025 ("Type Of Work" column),
 // restricted to Complete rows within the active date-range filter (k.hourRowsByTeam).
+const TYPE_ICONS = {
+  'Artwork':'&#127912;', 'Album':'&#128444;&#65039;', 'etc.':'&#128257;',
+  'CPAS':'&#128227;', 'SKU Tiktok':'&#127925;', 'ไม่ระบุ':'&#10067;'
+};
 function renderContentTypeDist(rows){
   const counts = {};
   rows.forEach(r=>{
@@ -1131,35 +1132,47 @@ function renderContentTypeDist(rows){
   });
   const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   const total = rows.length || 1;
+  const box = document.getElementById('typeDistList');
+  const totalBox = document.getElementById('typeDistTotal');
 
-  const ctx = document.getElementById('chartTypeDist');
-  if(charts['chartTypeDist']) charts['chartTypeDist'].destroy();
   if(!entries.length){
-    document.getElementById('typeDistTbl').innerHTML = '<div class="empty-state">ไม่มีข้อมูลในช่วงที่เลือก</div>';
+    box.innerHTML = '<div class="empty-state">ไม่มีข้อมูลในช่วงที่เลือก</div>';
+    if(totalBox) totalBox.innerHTML = '';
     return;
   }
-  charts['chartTypeDist'] = new Chart(ctx, {
-    type:'pie',
-    data:{ labels:entries.map(e=>e[0]), datasets:[{ data:entries.map(e=>e[1]), backgroundColor:entries.map((_,i)=>PIE_PALETTE[i%PIE_PALETTE.length]), borderWidth:2, borderColor:'#fff' }] },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{position:'right', labels:{boxWidth:9, boxHeight:9, usePointStyle:true, font:{size:11, family:"'Plus Jakarta Sans'"}}} }
-    }
-  });
 
-  let html = '<table class="data-tbl"><thead><tr><th>Type Of Work</th><th class="num">จำนวน</th><th class="num">%</th></tr></thead><tbody>';
-  entries.forEach(([name,count],i)=>{
-    html += `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${PIE_PALETTE[i%PIE_PALETTE.length]};margin-right:6px;"></span>${name}</td><td class="num">${fmtNum(count)}</td><td class="num">${(count/total*100).toFixed(1)}%</td></tr>`;
-  });
-  html += '</tbody></table>';
-  document.getElementById('typeDistTbl').innerHTML = html;
+  const max = entries[0][1] || 1;
+  box.innerHTML = entries.map(([name,count],i)=>{
+    const color = PIE_PALETTE[i % PIE_PALETTE.length];
+    const icon = TYPE_ICONS[name] || '&#127991;&#65039;';
+    const w = Math.max(4, (count/max*100));
+    const pct = (count/total*100).toFixed(1);
+    return `<div class="hp-row">
+      <div class="hp-avatar" style="background:${color};font-size:15px;">${icon}</div>
+      <div class="hp-name" style="width:100px;">${name}</div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar-track"><div class="hp-bar-fill" style="width:${w}%;background:${color};"></div></div>
+      </div>
+      <div class="hp-stats">
+        <span class="hrs">${fmtNum(count)}</span>
+        <span class="pct">${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(totalBox){
+    totalBox.innerHTML = `<div class="hp-total">
+      <div class="lbl">รวมทั้งหมด</div>
+      <div class="vals"><span class="hrs">${fmtNum(total)}</span><span class="pct">100%</span></div>
+    </div>`;
+  }
 }
 
 /* ===================== TOP SELLING CONTENT ===================== */
 function renderTopSelling(rows, targetId, n=10){
-  const sorted = rows.filter(r=>r.purchase>0).sort((a,b)=>b.purchase-a.purchase).slice(0,n);
+  const sorted = rows.filter(r=>r.revenue>0).sort((a,b)=>b.revenue-a.revenue).slice(0,n);
   const box = document.getElementById(targetId);
-  if(!sorted.length){ box.innerHTML = '<div class="empty-state">ไม่มีข้อมูล Purchase ในช่วงที่เลือก</div>'; return; }
+  if(!sorted.length){ box.innerHTML = '<div class="empty-state">ไม่มีข้อมูลยอดขายในช่วงที่เลือก</div>'; return; }
   box.innerHTML = sorted.map((r,i)=>`
     <div class="content-row">
       <div class="rank ${i===0?'gold':''}">${i+1}</div>
@@ -1168,7 +1181,7 @@ function renderTopSelling(rows, targetId, n=10){
         <div class="m">${r.channel||'-'} &middot; ${r.team||'-'} &middot; ${monthLabel(r.date.slice(0,7))}</div>
       </div>
       <div class="c-stats">
-        <div class="e">${fmtNum(r.purchase)} ยอดขาย</div>
+        <div class="e">฿${fmtNum(r.revenue)}</div>
         <div class="r">${r.mediaView ? fmtCompact(r.mediaView)+' MV' : '—'}</div>
       </div>
     </div>`).join('');
