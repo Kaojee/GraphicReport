@@ -261,6 +261,47 @@
   .c-stats .e{font-size:12.5px;font-weight:800;}
   .c-stats .r{font-size:11px;color:var(--muted);}
 
+  .score-badge{
+    flex:0 0 auto;width:52px;height:52px;border-radius:50%;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;font-weight:800;background:var(--primary-soft);color:var(--primary-ink);
+  }
+  .score-badge .num{font-size:15px;line-height:1.1;}
+  .score-badge .lbl{font-size:8px;font-weight:700;text-transform:uppercase;opacity:.75;}
+  .metric-trio{display:flex;gap:14px;flex:0 0 auto;}
+  .metric-trio .mi{text-align:right;min-width:64px;}
+  .metric-trio .mi .v{font-size:12px;font-weight:800;}
+  .metric-trio .mi .k{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;}
+
+  /* Best Content Overall — horizontal row of live post embeds */
+  .best-content-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;}
+  .bc-card{
+    flex:0 0 226px;width:226px;border:1px solid var(--border);border-radius:12px;padding:10px;
+    position:relative;background:#fafafd;
+  }
+  .bc-rank{
+    position:absolute;top:8px;left:8px;z-index:2;width:24px;height:24px;border-radius:50%;
+    background:var(--primary);color:#fff;font-weight:800;font-size:12px;display:flex;
+    align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(20,22,40,.25);
+  }
+  .bc-rank.gold{background:#c9962b;}
+  .bc-embed{
+    min-height:170px;max-height:320px;overflow-y:auto;overflow-x:hidden;display:flex;
+    align-items:flex-start;justify-content:center;border-radius:8px;background:#eef0f8;
+  }
+  .bc-embed-fallback{width:100%;padding:26px 10px;text-align:center;font-size:11px;color:var(--muted);}
+  .bc-embed-fallback a{color:var(--primary-ink);font-weight:700;}
+  .bc-caption{margin-top:8px;}
+  .bc-caption .t{font-size:11.5px;font-weight:700;line-height:1.3;margin-bottom:6px;}
+  .bc-caption .meta{font-size:9.5px;color:var(--muted);margin-bottom:8px;}
+  .bc-stats-row{display:flex;justify-content:space-between;gap:6px;}
+  .bc-stats-row .si{text-align:left;}
+  .bc-stats-row .si .v{font-size:11px;font-weight:800;display:block;}
+  .bc-stats-row .si .k{font-size:8.5px;color:var(--muted);text-transform:uppercase;}
+  .bc-score-pill{
+    position:absolute;top:8px;right:8px;z-index:2;background:var(--ink);color:#fff;font-weight:800;
+    font-size:10.5px;padding:3px 8px;border-radius:20px;box-shadow:0 2px 6px rgba(20,22,40,.25);
+  }
+
   /* hours bars */
   .hours-list{display:flex;flex-direction:column;gap:14px;}
   .hours-row .hr-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px;}
@@ -388,6 +429,29 @@
   .c-link{color:inherit;text-decoration:none;border-bottom:1px dashed var(--faint);}
   .c-link:hover{border-bottom-color:var(--primary-ink);color:var(--primary-ink);}
   .link-ic{font-size:10px;margin-left:3px;opacity:.7;}
+  .fb-preview-btn{
+    background:none;border:none;cursor:pointer;font-size:11px;color:var(--primary-ink);
+    padding:2px 6px;border-radius:6px;margin-left:4px;opacity:.8;
+  }
+  .fb-preview-btn:hover{background:var(--primary-soft);opacity:1;}
+
+  .fb-modal{
+    display:none;position:fixed;inset:0;background:rgba(20,22,40,.55);z-index:9999;
+    align-items:center;justify-content:center;padding:24px;
+  }
+  .fb-modal.open{display:flex;}
+  .fb-modal-box{
+    background:#fff;border-radius:16px;padding:16px;width:540px;max-width:92vw;max-height:88vh;
+    overflow:auto;position:relative;box-shadow:0 24px 64px rgba(20,22,40,.35);
+  }
+  .fb-modal-close{
+    position:absolute;top:8px;right:10px;border:none;background:#f0f1f6;width:30px;height:30px;
+    border-radius:50%;font-size:18px;cursor:pointer;color:var(--muted);line-height:1;
+  }
+  .fb-modal-close:hover{background:#e6e7f2;color:var(--ink);}
+  .fb-modal-body{margin-top:14px;min-height:120px;min-width:500px;text-align:center;}
+  .fb-modal-fallback{padding:30px 10px;text-align:center;color:var(--muted);font-size:13px;}
+  .fb-modal-fallback a{color:var(--primary-ink);font-weight:700;}
 
   @media (max-width:1100px){
     .kpi-grid{grid-template-columns:repeat(2,1fr);}
@@ -401,6 +465,31 @@
 </style>
 </head>
 <body>
+
+<!-- ============ FACEBOOK EMBED (public posts preview) ============ -->
+<div id="fb-root"></div>
+<script>
+  window.fbAsyncInit = function() {
+    FB.init({ xfbml: false, version: 'v20.0' });
+    window.__fbSdkReady = true;
+  };
+  (function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) return;
+    js = d.createElement(s); js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    js.async = true; js.defer = true;
+    js.onerror = function(){ window.__fbSdkFailed = true; };
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
+</script>
+
+<div id="fbPreviewModal" class="fb-modal" onclick="if(event.target===this) closeFbPreview()">
+  <div class="fb-modal-box">
+    <button class="fb-modal-close" onclick="closeFbPreview()">&times;</button>
+    <div id="fbPreviewBody" class="fb-modal-body"></div>
+  </div>
+</div>
 
 <!-- ============ CONNECT SCREEN ============ -->
 <div id="connectScreen">
@@ -447,6 +536,11 @@
         <div class="filters" id="ov-filters"></div>
 
         <div class="kpi-grid" id="ov-kpis"></div>
+
+        <div class="panel" style="margin-bottom:14px;">
+          <div class="panel-head"><div class="panel-title">Best Content Overall <span>Top 5 &middot; รวมคะแนน Media View + ROAS + ยอดขาย</span></div></div>
+          <div id="bestContent" class="best-content-row"></div>
+        </div>
 
         <div class="panel" style="margin-bottom:14px;">
           <div class="panel-head">
@@ -617,7 +711,7 @@ const TEAM_COLORS = {
 const CHART_COLORS = {content:'#3d5afe', hours:'#0f9b8e', mediaView:'#e0457b', roas:'#e08a1f'};
 
 const ovFilters = { yearFrom:null, yearTo:null, team:'All', channel:'All' };
-let tierThresholds = { t1:10000, t2:5000 }; // Tier1 >= t1, Tier2 >= t2 (< t1), Tier3 < t2
+let tierThresholds = { t1:40000, t2:10000 }; // Tier1 >= t1, Tier2 >= t2 (< t1), Tier3 < t2
 const PIE_PALETTE = ['#3d5afe','#0f9b8e','#e0457b','#e08a1f','#7b8dff','#2438c4','#8b6cf0','#4fc0b3','#c4576e','#c98f2f'];
 
 async function loadTierThresholds(){
@@ -913,6 +1007,7 @@ function renderOverview(){
 
   safeRender('hoursList', ()=>renderHoursList(k.hourRowsByTeam));
   safeRender('topContent', ()=>renderTopContentTiered(k.rows, 'topContent'));
+  safeRender('bestContent', ()=>renderBestContent(k.rows, 'bestContent'));
   safeRender('insights', ()=>renderInsights(k, pk));
   safeRender('mediaSummary', ()=>renderMediaSummary(k.rows));
   safeRender('tierList', ()=>renderTierList(k.rows));
@@ -1094,15 +1189,120 @@ function renderTopContentTiered(rows, targetId, n=5){
   }).join('');
 }
 
+// "Best Content Overall" — combines Media View, ROAS, and Revenue into one composite
+// score (each normalized 0-100 against the max in the current filtered range, then
+// averaged equally) so a single leaderboard reflects reach + ad efficiency + sales,
+// rather than just one dimension at a time like the other Top panels do.
+// Renders as 5 cards side-by-side with a live embedded preview of the actual post.
+function renderBestContent(rows, targetId, n=5){
+  const box = document.getElementById(targetId);
+  const candidates = rows.filter(r=>r.mediaView>0);
+  if(!candidates.length){ box.innerHTML = '<div class="empty-state">ไม่มีข้อมูลเพียงพอสำหรับคำนวณคะแนนในช่วงที่เลือก</div>'; return; }
+
+  const maxMV = Math.max(...candidates.map(r=>r.mediaView||0));
+  const maxRoas = Math.max(...candidates.map(r=>r.roas||0));
+  const maxRevenue = Math.max(...candidates.map(r=>r.revenue||0));
+
+  const scored = candidates.map(r=>{
+    const sMV = maxMV ? (r.mediaView||0)/maxMV*100 : 0;
+    const sRoas = maxRoas ? (r.roas||0)/maxRoas*100 : 0;
+    const sRev = maxRevenue ? (r.revenue||0)/maxRevenue*100 : 0;
+    const score = (sMV + sRoas + sRev) / 3;
+    return {...r, score};
+  }).sort((a,b)=>b.score-a.score).slice(0,n);
+
+  const EMBED_W = 206;
+  box.innerHTML = scored.map((r,i)=>{
+    const url = getPostLink(r);
+    const embedInner = isFacebookUrl(url)
+      ? `<div style="display:inline-block;width:${EMBED_W}px;"><div class="fb-post" data-href="${url}" data-width="${EMBED_W}" data-show-text="false"></div></div>`
+      : (url
+          ? `<div class="bc-embed-fallback">ลิงก์นี้ไม่ใช่โพสต์ Facebook<br><a href="${url}" target="_blank" rel="noopener">เปิดลิงก์ &rarr;</a></div>`
+          : `<div class="bc-embed-fallback">ไม่มีลิงก์โพสต์สำหรับ Content นี้</div>`);
+    return `<div class="bc-card">
+      <div class="bc-rank ${i===0?'gold':''}">${i+1}</div>
+      <div class="bc-score-pill">${r.score.toFixed(0)} pts</div>
+      <div class="bc-embed" data-fb-embed="${i}">${embedInner}</div>
+      <div class="bc-caption">
+        <div class="t">${r.contentName||'-'}</div>
+        <div class="meta">${r.page||'-'} &middot; ${r.channel||'-'} &middot; ${monthLabel(r.date.slice(0,7))}</div>
+        <div class="bc-stats-row">
+          <div class="si"><span class="v">${fmtCompact(r.mediaView)}</span><span class="k">Media View</span></div>
+          <div class="si"><span class="v">${r.roas ? r.roas.toFixed(2)+'x' : '—'}</span><span class="k">ROAS</span></div>
+          <div class="si"><span class="v">${r.revenue ? '฿'+fmtCompact(r.revenue) : '—'}</span><span class="k">ยอดขาย</span></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const fallbackAllEmbeds = ()=>{
+    box.querySelectorAll('.fb-post').forEach(el=>{
+      const url = el.getAttribute('data-href');
+      el.closest('.bc-embed').innerHTML = `<div class="bc-embed-fallback">โหลดพรีวิวไม่สำเร็จ<br><a href="${url}" target="_blank" rel="noopener">เปิดโพสต์ &rarr;</a></div>`;
+    });
+  };
+  if(box.querySelector('.fb-post')){
+    if(window.__fbSdkFailed){ fallbackAllEmbeds(); }
+    else parseFbEmbeds(box, fallbackAllEmbeds);
+  }
+}
+
 /* ===================== POST LINK HELPER ===================== */
 function getPostLink(r){
   return r.postLink || r.post_link || r.postUrl || r.postURL || r.link || r.postlink || r['Post Link'] || '';
 }
+function isFacebookUrl(url){
+  return /facebook\.com|fb\.watch/i.test(url||'');
+}
 function linkWrap(r){
   const name = r.contentName || '-';
   const url = getPostLink(r);
-  if(url) return `<a href="${url}" target="_blank" rel="noopener" class="c-link">${name}<span class="link-ic">&#128279;</span></a>`;
-  return name;
+  if(!url) return name;
+  const link = `<a href="${url}" target="_blank" rel="noopener" class="c-link">${name}<span class="link-ic">&#128279;</span></a>`;
+  if(isFacebookUrl(url)){
+    // encode the URL for the inline onclick attribute
+    const safeUrl = url.replace(/'/g, '%27');
+    return `${link}<button class="fb-preview-btn" onclick="openFbPreview('${safeUrl}')" title="พรีวิวโพสต์ Facebook">&#128065;&#xFE0E; Preview</button>`;
+  }
+  return link;
+}
+
+/* ===================== FACEBOOK POST PREVIEW MODAL ===================== */
+// Reusable: waits for the FB SDK to be ready, then waits a full paint cycle
+// (double rAF) before calling FB.XFBML.parse on the given container — this
+// is what avoids the container_width=0 blank-iframe bug. Calls onFail() if
+// the SDK never becomes available within the retry budget.
+function parseFbEmbeds(container, onFail, attemptsLeft=15){
+  if(window.FB && window.FB.XFBML){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      FB.XFBML.parse(container);
+    }));
+  } else if(attemptsLeft>0){
+    setTimeout(()=>parseFbEmbeds(container, onFail, attemptsLeft-1), 300);
+  } else if(onFail){
+    onFail();
+  }
+}
+
+function openFbPreview(url){
+  const modal = document.getElementById('fbPreviewModal');
+  const body = document.getElementById('fbPreviewBody');
+  modal.classList.add('open');
+
+  const fallback = ()=>{
+    body.innerHTML = `<div class="fb-modal-fallback">โหลด Facebook widget ไม่สำเร็จ (เครือข่ายอาจบล็อก connect.facebook.net)<br><a href="${url}" target="_blank" rel="noopener">เปิดโพสต์นี้ในแท็บใหม่แทน &rarr;</a></div>`;
+  };
+
+  if(window.__fbSdkFailed){ fallback(); return; }
+
+  // Explicit fixed-width wrapper (display:inline-block) so FB's sizing script
+  // never measures a 0px-wide container — this is what caused the blank/0x0 iframe.
+  body.innerHTML = `<div style="display:inline-block;width:500px;"><div class="fb-post" data-href="${url}" data-width="500" data-show-text="true"></div></div>`;
+  parseFbEmbeds(body, fallback);
+}
+function closeFbPreview(){
+  document.getElementById('fbPreviewModal').classList.remove('open');
+  document.getElementById('fbPreviewBody').innerHTML = '';
 }
 
 /* ===================== MEDIA VIEW SUMMARY ===================== */
