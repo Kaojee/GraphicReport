@@ -559,6 +559,11 @@
           </div>
         </div>
 
+        <div class="panel" style="margin-bottom:14px;">
+          <div class="panel-head"><div class="panel-title">Total Jobs Comparison <span>ตาม Type Of Work &middot; ทุกทีม (Complete)</span></div></div>
+          <div id="jobsCompareTbl"></div>
+        </div>
+
         <div class="panel">
           <div class="panel-head"><div class="panel-title">Top Performing Content <span>Period A</span></div></div>
           <div id="topContentCmp" class="content-list"></div>
@@ -612,7 +617,7 @@ const TEAM_COLORS = {
 const CHART_COLORS = {content:'#3d5afe', hours:'#0f9b8e', mediaView:'#e0457b', roas:'#e08a1f'};
 
 const ovFilters = { yearFrom:null, yearTo:null, team:'All', channel:'All' };
-let tierThresholds = { t1:40000, t2:10000 }; // Tier1 >= t1, Tier2 >= t2 (< t1), Tier3 < t2
+let tierThresholds = { t1:10000, t2:5000 }; // Tier1 >= t1, Tier2 >= t2 (< t1), Tier3 < t2
 const PIE_PALETTE = ['#3d5afe','#0f9b8e','#e0457b','#e08a1f','#7b8dff','#2438c4','#8b6cf0','#4fc0b3','#c4576e','#c98f2f'];
 
 async function loadTierThresholds(){
@@ -1038,7 +1043,7 @@ function renderTopContent(rows, targetId, n=10){
       <div class="rank ${i===0?'gold':''}">${i+1}</div>
       <div class="c-name">
         <div class="t">${linkWrap(r)}</div>
-        <div class="m">${r.channel||'-'} &middot; ${r.team||'-'} &middot; ${monthLabel(r.date.slice(0,7))}</div>
+        <div class="m">${r.page||'-'} &middot; ${r.channel||'-'} &middot; ${r.team||'-'} &middot; ${monthLabel(r.date.slice(0,7))}</div>
       </div>
       <div class="c-stats">
         <div class="e">${fmtCompact(r.mediaView)}</div>
@@ -1071,7 +1076,7 @@ function renderTopContentTiered(rows, targetId, n=5){
           <div class="rank ${i===0?'gold':''}">${i+1}</div>
           <div class="c-name">
             <div class="t">${linkWrap(r)}</div>
-            <div class="m">${r.channel||'-'} &middot; ${r.team||'-'} &middot; ${monthLabel(r.date.slice(0,7))}</div>
+            <div class="m">${r.page||'-'} &middot; ${r.channel||'-'} &middot; ${r.team||'-'} &middot; ${monthLabel(r.date.slice(0,7))}</div>
           </div>
           <div class="c-stats">
             <div class="e">${fmtCompact(r.mediaView)}</div>
@@ -1205,7 +1210,7 @@ function renderTopSelling(rows, targetId, n=10){
       <div class="rank ${i===0?'gold':''}">${i+1}</div>
       <div class="c-name">
         <div class="t">${linkWrap(r)}</div>
-        <div class="m">${r.channel||'-'} &middot; ${r.team||'-'} &middot; ${monthLabel(r.date.slice(0,7))}</div>
+        <div class="m">${r.page||'-'} &middot; ${r.channel||'-'} &middot; ${r.team||'-'} &middot; ${monthLabel(r.date.slice(0,7))}</div>
       </div>
       <div class="c-stats">
         <div class="e">฿${fmtNum(r.revenue)}</div>
@@ -1314,8 +1319,8 @@ function runCompare(){
 
   const kpiBox = document.getElementById('cmp-kpis');
   kpiBox.innerHTML = `
-    ${cmpKpiCard('&#128196;','var(--primary-soft)','var(--primary-ink)','Total Content', A.totalContent, B.totalContent, v=>fmtNum(v))}
-    ${cmpKpiCard('&#9200;','var(--teal-soft)','var(--teal)','Total Hours', A.totalHours, B.totalHours, v=>fmtNum(v,1), `${fmtNum(A.totalJobs)} งานที่เสร็จ`)}
+    ${cmpKpiCard('&#128196;','var(--primary-soft)','var(--primary-ink)','Total Content', A.totalContent, B.totalContent, v=>fmtNum(v), 'ทุกทีม (ไม่กรองตาม Team) &middot; งานที่เสร็จ (Complete)')}
+    ${cmpKpiCard('&#9200;','var(--teal-soft)','var(--teal)','Total Hours', A.totalHours, B.totalHours, v=>fmtNum(v,1), `ทุกทีม &middot; ${fmtNum(A.totalJobs)} งานที่เสร็จ`)}
     ${cmpKpiCard('&#128064;','var(--rose-soft)','var(--rose)','TOP Media View', A.topMediaView, B.topMediaView, v=>fmtCompact(v), A.topMediaViewName ? ('&#128081; '+A.topMediaViewName) : undefined)}
     ${cmpKpiCard('&#128176;','var(--amber-soft)','var(--amber)','TOP ROAS', A.topRoas, B.topRoas, v=>v.toFixed(2)+'x', A.topRoasName ? ('&#128081; '+A.topRoasName) : undefined)}
   `;
@@ -1324,6 +1329,7 @@ function runCompare(){
   safeRender('compareHeatmap', ()=>renderCompareHeatmap(A, B));
   safeRender('compareTeamTable', ()=>renderCompareTeamTable(A, B));
   safeRender('compareDesignerTable', ()=>renderCompareDesignerTable(A, B));
+  safeRender('compareJobsTable', ()=>renderCompareJobsTable(A, B));
   safeRender('compareTopContent', ()=>renderTopContent(A.rows, 'topContentCmp'));
 }
 
@@ -1433,6 +1439,34 @@ function renderCompareDesignerTable(A, B){
   });
   html += `</tbody></table>`;
   document.getElementById('designerCompareTbl').innerHTML = html || '<div class="empty-state">ไม่มีข้อมูล</div>';
+}
+
+// Compares total completed jobs (same source as the "Total Content" KPI — Graphic Assignment,
+// Complete rows, all teams) broken down by Type Of Work, Period A vs B.
+function renderCompareJobsTable(A, B){
+  const jobsA = A.hourRowsByTeam, jobsB = B.hourRowsByTeam;
+  const typesSet = new Set([...jobsA.map(r=>r.typeOfWork), ...jobsB.map(r=>r.typeOfWork)]
+    .map(v=> v && String(v).trim() ? String(v).trim() : 'ไม่ระบุ'));
+  const norm = v => v && String(v).trim() ? String(v).trim() : 'ไม่ระบุ';
+
+  const rows = Array.from(typesSet).map(t=>{
+    const c = jobsA.filter(r=>norm(r.typeOfWork)===t).length;
+    const p = jobsB.filter(r=>norm(r.typeOfWork)===t).length;
+    return {t, c, p, diff:c-p, pct: p ? ((c-p)/p*100) : null};
+  }).sort((a,b)=>b.c-a.c);
+  const totalC = jobsA.length, totalP = jobsB.length;
+
+  const box = document.getElementById('jobsCompareTbl');
+  if(!rows.length){ box.innerHTML = '<div class="empty-state">ไม่มีข้อมูลในช่วงที่เลือก</div>'; return; }
+
+  let html = `<table class="data-tbl"><thead><tr><th>Type Of Work</th><th class="num">Current</th><th class="num">Previous</th><th class="num">Diff</th><th class="num">Change</th></tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const cls = r.diff>0?'diff-up':r.diff<0?'diff-down':'diff-flat';
+    html += `<tr><td>${r.t}</td><td class="num">${r.c}</td><td class="num">${r.p}</td><td class="num ${cls}">${r.diff>0?'+':''}${r.diff}</td><td class="num ${cls}">${r.pct===null?'—':(r.pct>=0?'▲ ':'▼ ')+Math.abs(r.pct).toFixed(1)+'%'}</td></tr>`;
+  });
+  html += `<tr class="total-row"><td><strong>TOTAL</strong></td><td class="num"><strong>${totalC}</strong></td><td class="num"><strong>${totalP}</strong></td><td class="num"><strong>${totalC-totalP>=0?'+':''}${totalC-totalP}</strong></td><td class="num"><strong>${totalP?(((totalC-totalP)/totalP)*100).toFixed(1)+'%':'—'}</strong></td></tr>`;
+  html += `</tbody></table>`;
+  box.innerHTML = html;
 }
 
 /* ===================== ALL DATA TABLE ===================== */
